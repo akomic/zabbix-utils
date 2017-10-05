@@ -17,5 +17,5 @@ performs:
   directory and set correct permissions (chmod 755 consul.py)
 - Import consul_template.xml
 - Create consul host
-	- Add MACRO: {$CONSUL_URI} http://user:pass@consulhost:8500/token
+	- Add MACRO: {$CONSUL_URI} = http://user:pass@consulhost:8500/token
 	- Link "Consul Template" to host
