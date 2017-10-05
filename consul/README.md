@@ -11,6 +11,10 @@ performs:
 - Service Discovery
 - Service Status Check
 
+Supports:
+- HTTP Basic Auth
+- Token Auth
+
 ## Configure
 
 - Copy consul.py to Zabbix server or Zabbix proxy "ExternalScripts"
