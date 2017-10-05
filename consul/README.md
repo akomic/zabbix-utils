@@ -7,9 +7,9 @@ item. Consul.py is connecting to Consul server (or cluster) API and
 performs:
 
 - Node Discovery
-- Node Status
+- Node Status Check
 - Service Discovery
-- Service Status
+- Service Status Check
 
 ## Configure
 
