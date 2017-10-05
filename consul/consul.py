@@ -1,20 +1,17 @@
 #!/usr/bin/env python
 import sys
 import json
+import urlparse
 import argparse
 import requests
+from requests.auth import HTTPBasicAuth
 
 parser = argparse.ArgumentParser(description='Zabbix Consul')
-
-parser.add_argument('-s', dest='server_address', default='localhost',
-                    help='Consul Server Address')
-parser.add_argument('-p', dest='server_port', default='8500',
-                    help='Consul Server Port')
-parser.add_argument('-t', dest='server_token', default=None,
-                    help='Consul Server Token')
-parser.add_argument('-nn', dest='node_name',
+parser.add_argument('-u', dest='server_uri', required=True,
+                    help='http://user:pass@localhost:8500/token')
+parser.add_argument('-n', dest='node_name',
                     help='Node Name')
-parser.add_argument('-sn', dest='service_name',
+parser.add_argument('-s', dest='service_name',
                     help='Service Name')
 parser.add_argument('-a', dest='action', required=True,
                     choices=[
@@ -28,8 +25,18 @@ args = parser.parse_args()
 
 
 def fetch(url, ret={}):
+    if args.debug:
+        print("Sending request to {}".format(url))
+
     try:
-        r = requests.get(url, headers=headers)
+        headers = {}
+        auth = None
+        if server_token:
+            headers = {'X-Consul-Token': server_token}
+        if server_user and server_pass:
+            auth = HTTPBasicAuth(server_user, server_pass)
+
+        r = requests.get(url, headers=headers, auth=auth)
         if r.status_code != 200:
             if args.debug:
                 print(r.status_code, r.text)
@@ -63,6 +70,9 @@ def nodeDiscovery(url):
 
 def nodeStatus(url):
     node = fetch(url)
+    if len(node) == 0:
+        print(0)
+        sys.exit(0)
 
     try:
         status = 1 if node[0]['Status'] == 'passing' else 0 
@@ -89,6 +99,9 @@ def serviceDiscovery(url):
 
 def serviceStatus(url):
     services = fetch(url)
+    if len(services) == 0:
+        print(0)
+        sys.exit(0)
 
     try:
         for service in services:
@@ -103,37 +116,52 @@ def serviceStatus(url):
             sys.exit(1)
         print(0)
 
-headers = {}
-if args.server_token:
-    headers = {'X-Consul-Token': args.server_token}
+
+try:
+    uri = urlparse.urlparse(args.server_uri)
+    server_scheme = uri.scheme
+    server_address = uri.hostname
+    server_port = uri.port if uri.port else 8500
+    server_user = uri.username
+    server_pass = uri.password
+    server_token = uri.path.strip('/') if uri.path not in ['', '/'] else None
+except Exception as e:
+    print(str(e))
+    print("Invalid uri {}".format(args.server_uri))
+    parser.print_help()
+    sys.exit(1)
 
 if args.action == 'nodeDiscovery':
-    nodeDiscovery("http://{}:{}/v1/health/service/consul".format(
-        args.server_address,
-        args.server_port
+    nodeDiscovery("{}://{}:{}/v1/health/service/consul".format(
+        server_scheme,
+        server_address,
+        server_port
     ))
 elif args.action == 'nodeStatus':
     if not args.node_name:
         print("-n <node_name> required")
         sys.exit(1)
     else:
-        nodeStatus("http://{}:{}/v1/health/node/{}".format(
-            args.server_address,
-            args.server_port,
+        nodeStatus("{}://{}:{}/v1/health/node/{}".format(
+            server_scheme,
+            server_address,
+            server_port,
             args.node_name
         ))
 elif args.action == 'serviceDiscovery':
-    serviceDiscovery("http://{}:{}/v1/catalog/services".format(
-        args.server_address,
-        args.server_port
+    serviceDiscovery("{}://{}:{}/v1/catalog/services".format(
+        server_scheme,
+        server_address,
+        server_port
     ))
 elif args.action == 'serviceStatus':
     if not args.service_name:
-        print("-sn <service_name> required")
+        print("-s <service_name> required")
         sys.exit(1)
     else:
-        serviceStatus("http://{}:{}/v1/health/service/{}".format(
-            args.server_address,
-            args.server_port,
+        serviceStatus("{}://{}:{}/v1/health/service/{}".format(
+            server_scheme,
+            server_address,
+            server_port,
             args.service_name
         ))
