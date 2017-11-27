@@ -10,17 +10,21 @@ It's using cache file locking to avoid race condition.
 
 ### RabbitMQ Server
 
+Clone this repo
+
 ```shell
+cd zabbix-utils/rabbitmq
 pip install -r requirements.txt
 mkdir -p /etc/zabbix/scripts
+cp rabbitmq.py /etc/zabbix/scripts/
+chown zabbix. /etc/zabbix/scripts/rabbitmq.py
+chmod 700 /etc/zabbix/scripts/rabbitmq.py
+cp userparameter_rabbitmq.conf /etc/zabbix/zabbix_agentd.d/
 ```
 
-* Copy userparameter_rabbitmq.conf to /etc/zabbix/zabbix_agentd.d
-* Copy rabbitmq.py to /etc/zabbix/scripts/
 * Edit /etc/zabbix/scripts/rabbitmq.py and enter host/user/pass
 * Import zbx_export_templates.xml
 
 ```shell
-chown zabbix. /etc/zabbix/scripts/rabbitmq.py
-* systemctl restart zabbix-agent
+systemctl restart zabbix-agent
 ```
