@@ -57,6 +57,27 @@ class API(object):
         self.user = user
         self.passwd = passwd
         self.verbose = verbose
+        self.payload = {}
+
+    def getHealthcheck(self):
+        if self.verbose > 0:
+            print("Fetching stats from API")
+        r = requests.get(
+            "{}/api/healthchecks/node".format(self.url),
+            auth=(self.user, self.passwd),
+            verify=False
+        )
+        return r.json()
+
+    def getOverview(self):
+        if self.verbose > 0:
+            print("Fetching stats from API")
+        r = requests.get(
+            "{}/api/overview".format(self.url),
+            auth=(self.user, self.passwd),
+            verify=False
+        )
+        return r.json()
 
     def getQueueStats(self):
         if self.verbose > 0:
@@ -79,7 +100,9 @@ class API(object):
             if c.is_valid():
                 self.payload = c.read()
             else:
-                self.payload = self.getQueueStats()
+                self.payload['overview'] = self.getOverview()
+                self.payload['queues'] = self.getQueueStats()
+                self.payload['healthcheck'] = self.getHealthcheck()
                 c.write(self.payload)
         if self.verbose > 1:
             print(json.dumps(self.payload))
@@ -95,8 +118,8 @@ def doQueues(args):
             retData = {
                 'data': []
             }
-            for vhostName in a.payload:
-                for queueName in a.payload[vhostName]:
+            for vhostName in a.payload['queues']:
+                for queueName in a.payload['queues'][vhostName]:
                     retData['data'].append({
                         '{#VHOSTNAME}': vhostName,
                         '{#QUEUENAME}': queueName
@@ -111,7 +134,7 @@ def doQueues(args):
         with API(URL, USER, PASS, args.verbose) as a:
             try:
                 keyPath = args.itemKey.split('.')
-                data = a.payload[args.vhost][args.queue]
+                data = a.payload['queues'][args.vhost][args.queue]
                 if len(keyPath) == 1:
                     print(data[args.itemKey])
                 elif len(keyPath) == 2:
@@ -128,6 +151,43 @@ def doQueues(args):
         pQueues.print_help()
 
 
+def doGeneral(args):
+    if args.itemKey:
+        with API(URL, USER, PASS, args.verbose) as a:
+            try:
+                keyPath = args.itemKey.split('.')
+                data = a.payload['overview']
+                if len(keyPath) == 1:
+                    print(data[args.itemKey])
+                elif len(keyPath) == 2:
+                    print(data[keyPath[0]][keyPath[1]])
+                else:
+                    print('Unknown')
+                    sys.exit(1)
+            except KeyError:
+                print('Unknown')
+                sys.exit(1)
+            else:
+                sys.exit(0)
+    else:
+        pGeneral.print_help()
+
+
+def doHCheck(args):
+    if args.itemKey:
+        with API(URL, USER, PASS, args.verbose) as a:
+            try:
+                data = a.payload['healthcheck']
+                print(data[args.itemKey])
+            except KeyError:
+                print('Unknown')
+                sys.exit(1)
+            else:
+                sys.exit(0)
+    else:
+        pHCheck.print_help()
+
+
 parser = argparse.ArgumentParser(description='RabbitMQ Zabbix')
 subparsers = parser.add_subparsers(help='sub-command help')
 
@@ -141,6 +201,25 @@ pQueues.add_argument('-q', dest='queue', help='QueueName')
 pQueues.add_argument('--verbose', dest='verbose', action='count', default=0,
                      help='Verbosity')
 pQueues.set_defaults(func=doQueues)
+
+pGeneral = subparsers.add_parser('server',
+                                 help='General')
+# pGeneral.add_argument('-d', dest='discovery', action='count', default=0,
+#                        help='Queue Discovery')
+pGeneral.add_argument('-k', dest='itemKey', help='Key to get')
+# pGeneral.add_argument('-v', dest='vhost', help='VHostName')
+# pGeneral.add_argument('-q', dest='queue', help='QueueName')
+pGeneral.add_argument('--verbose', dest='verbose', action='count', default=0,
+                      help='Verbosity')
+pGeneral.set_defaults(func=doGeneral)
+
+pHCheck = subparsers.add_parser('healthcheck',
+                                help='Healthcheck')
+pHCheck.add_argument('-k', dest='itemKey', help='Healthcheck items')
+pHCheck.add_argument('--verbose', dest='verbose', action='count', default=0,
+                     help='Verbosity')
+pHCheck.set_defaults(func=doHCheck)
+
 
 if len(sys.argv) == 1:
     parser.print_help()
