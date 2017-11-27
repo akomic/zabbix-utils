@@ -118,6 +118,7 @@ def doQueues(args):
                     print(data[keyPath[0]][keyPath[1]])
                 else:
                     print('Unknown')
+                    sys.exit(1)
             except KeyError:
                 print('Unknown')
                 sys.exit(1)
