@@ -72,6 +72,17 @@ class API(object):
         self.verbose = verbose
         self.payload = {}
 
+    def getNodeHealth(self, nodeName):
+        if self.verbose > 0:
+            print("Fetching stats from API")
+        r = requests.get(
+            "{}/api/healthchecks/node/{}".format(self.url, nodeName),
+            auth=(self.user, self.passwd),
+            verify=False
+        )
+        data = r.json()
+        return data['status']
+
     def getHealthcheck(self):
         if self.verbose > 0:
             print("Fetching stats from API")
@@ -165,7 +176,20 @@ def doQueues(args):
 
 
 def doGeneral(args):
-    if args.itemKey:
+    if args.discovery:
+        with API(URL, USER, PASS, args.verbose) as a:
+            retData = {
+                'data': []
+            }
+            data = a.payload['overview']['listeners']
+            for listener in data:
+                if listener['protocol'] == 'clustering':
+                    retData['data'].append({
+                        '{#NODENAME}': listener['node']
+                    })
+            print(json.dumps(retData))
+            sys.exit(0)
+    elif args.itemKey:
         with API(URL, USER, PASS, args.verbose) as a:
             try:
                 keyPath = args.itemKey.split('.')
@@ -197,6 +221,10 @@ def doHCheck(args):
                 sys.exit(1)
             else:
                 sys.exit(0)
+    elif args.nodeName:
+        with API(URL, USER, PASS, args.verbose) as a:
+            print(a.getNodeHealth(args.nodeName))
+            sys.exit(0)
     else:
         pHCheck.print_help()
 
@@ -217,8 +245,8 @@ pQueues.set_defaults(func=doQueues)
 
 pGeneral = subparsers.add_parser('server',
                                  help='General')
-# pGeneral.add_argument('-d', dest='discovery', action='count', default=0,
-#                        help='Queue Discovery')
+pGeneral.add_argument('-d', dest='discovery', action='count', default=0,
+                      help='Node Discovery')
 pGeneral.add_argument('-k', dest='itemKey', help='Key to get')
 # pGeneral.add_argument('-v', dest='vhost', help='VHostName')
 # pGeneral.add_argument('-q', dest='queue', help='QueueName')
@@ -229,6 +257,7 @@ pGeneral.set_defaults(func=doGeneral)
 pHCheck = subparsers.add_parser('healthcheck',
                                 help='Healthcheck')
 pHCheck.add_argument('-k', dest='itemKey', help='Healthcheck items')
+pHCheck.add_argument('-n', dest='nodeName', help='Node Health')
 pHCheck.add_argument('--verbose', dest='verbose', action='count', default=0,
                      help='Verbosity')
 pHCheck.set_defaults(func=doHCheck)
