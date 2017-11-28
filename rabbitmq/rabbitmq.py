@@ -13,7 +13,12 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 Config = configparser.ConfigParser()
-Config.read('rabbitmq.cfg')
+Config.read(
+    os.path.join(
+        os.path.dirname(os.path.realpath(__file__)),
+        'rabbitmq.cfg'
+    )
+)
 
 try:
     URL = Config.get('Default', 'url')
