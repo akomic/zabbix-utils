@@ -1,0 +1,4 @@
+[Default]
+url = http://localhost:15672
+user = apiuser
+pass = apipass

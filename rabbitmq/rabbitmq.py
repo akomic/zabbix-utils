@@ -8,12 +8,20 @@ import hashlib
 import requests
 import argparse
 import simpleflock
+import configparser
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-URL = 'https://localhost:15672'
-USER = 'apiuser'
-PASS = 'apipass'
+Config = configparser.ConfigParser()
+Config.read('rabbitmq.cfg')
+
+try:
+    URL = Config.get('Default', 'url')
+    USER = Config.get('Default', 'user')
+    PASS = Config.get('Default', 'pass')
+except Exception:
+    print("Can't load config file")
+    sys.exit(1)
 
 
 class Cache(object):
