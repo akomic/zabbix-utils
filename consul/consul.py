@@ -4,6 +4,7 @@ import json
 import urlparse
 import argparse
 import requests
+import traceback
 from requests.auth import HTTPBasicAuth
 
 parser = argparse.ArgumentParser(description='Zabbix Consul')
@@ -47,6 +48,7 @@ def fetch(url, ret={}):
     except Exception as e:
         if args.debug:
             print(str(e))
+            print(traceback.format_exc())
             sys.exit(1)
         return ret
 
@@ -75,11 +77,12 @@ def nodeStatus(url):
         sys.exit(0)
 
     try:
-        status = 1 if node[0]['Status'] == 'passing' else 0 
+        status = 1 if node[0]['Status'] == 'passing' else 0
         print(status)
     except Exception as e:
         if args.debug:
             print(str(e))
+            print(traceback.format_exc())
             sys.exit(1)
         print(0)
 
@@ -105,14 +108,16 @@ def serviceStatus(url):
 
     try:
         for service in services:
-            if service['Checks'][0]['Status'] != 'passing':
-                print(0)
-                return
+            for check in service['Checks']:
+                if check['Status'] != 'passing':
+                    print(0)
+                    return
 
         print(1)
     except Exception as e:
         if args.debug:
             print(str(e))
+            print(traceback.format_exc())
             sys.exit(1)
         print(0)
 
