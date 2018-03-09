@@ -1,0 +1,14 @@
+{
+  "AWS": {
+    "dev": {
+      "key": "AWS KEY",
+      "secret": "AWS SECRET"
+    }
+  },
+  "Zabbix": {
+      "URL": "https://myzabbix.foobar.com",
+      "User": "api_user",
+      "Pass": "api_pass",
+      "HostGroup": "AWSAutoRegistered"
+  }
+}
